@@ -2,7 +2,7 @@
 
 **CollabCode** is a high-performance, real-time collaborative code editor designed for teams to code together seamlessly from anywhere in the world....
 
-## 👥 The Team 
+## 👥 The Team
 *   **Vinay Kumar** ([@Vinay50029](https://github.com/Vinay50029))
 *   **Mohan Sai** ([@mohansai1732](https://github.com/mohansai1732))
 *   **Ashish** ([@Ashish-altf6](https://github.com/Ashish-altf6))
@@ -40,8 +40,3 @@ npm run dev
 
 ---
 *Created with ❤️ by the CollabCode Team.*
-
-
-
-
-
