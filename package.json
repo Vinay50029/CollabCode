@@ -1,0 +1,31 @@
+{
+  "name": "collabcode",
+  "version": "1.0.0",
+  "description": "Real-time collaborative code editor",
+  "main": "server.js",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "server": "cross-env NODE_ENV=development node server.js"
+  },
+  "dependencies": {
+    "next": "latest",
+    "react": "latest",
+    "react-dom": "latest",
+    "yjs": "^13.6.10",
+    "y-websocket": "^1.5.0",
+    "y-monaco": "^0.1.4",
+    "@monaco-editor/react": "^4.6.0",
+    "socket.io": "^4.7.2",
+    "socket.io-client": "^4.7.2",
+    "express": "^4.18.2",
+    "lucide-react": "^0.292.0",
+    "cross-env": "^7.0.3"
+  },
+  "devDependencies": {
+    "autoprefixer": "latest",
+    "postcss": "latest",
+    "tailwindcss": "latest"
+  }
+}

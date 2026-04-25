@@ -44,20 +44,30 @@ graph TD
 
 ## 🚀 Getting Started
 
+To get this project running on your local machine, follow these steps. 
+
 ### 1. Clone the repository
 ```bash
 git clone https://github.com/Vinay50029/CollabCode.git
+cd CollabCode
 ```
 
-### 2. Install Dependencies
+### 2. Install Dependencies (For you and your friends)
+This command reads the `package.json` file and installs all the libraries (Yjs, Monaco, Socket.io, etc.) automatically.
 ```bash
 npm install
 ```
 
-### 3. Run the project
-```bash
-npm run dev
-```
+### 3. Run the Project
+You will need two terminals open:
+*   **Terminal 1 (Backend Server):**
+    ```bash
+    npm run server
+    ```
+*   **Terminal 2 (Frontend UI):**
+    ```bash
+    npm run dev
+    ```
 
 ---
 *Created with ❤️ by the CollabCode Team.*

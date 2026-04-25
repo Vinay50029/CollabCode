@@ -1,0 +1,5 @@
+# Handle line endings automatically for Windows and Mac
+* text=auto
+
+# Ensure bash scripts use LF
+*.sh text eol=lf
