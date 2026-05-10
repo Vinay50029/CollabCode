@@ -1,27 +1,16 @@
 # 🚀 CollabCode
 
-**CollabCode** is a high-performance, real-time collaborative code editor designed for teams to code together seamlessly from anywhere in the world.
+**CollabCode** is a high-performance, real-time collaborative code editor designed for teams to code together seamlessly from anywhere in the world. Built with a focus on interview integrity and low-latency synchronization.
 
 ## ⚙️ Working Mechanism
 
-CollabCode uses a combination of **CRDTs** and **WebSockets** to ensure seamless synchronization.
+CollabCode uses a combination of **CRDTs** and **WebSockets** to ensure seamless synchronization across different environments.
 
 ### Data Flow
 1. **The Editor (Monaco):** Captures user input and triggers events.
 2. **The Brain (Yjs):** Converts edits into conflict-free operations (CRDTs).
-3. **The Transport (WebSockets):** Broadcasts these operations to all connected peers via a Node.js server.
+3. **The Transport (y-websocket):** Broadcasts these operations to all connected peers via a Node.js backend.
 4. **The Merge:** Every client receives the operation and merges it locally, ensuring the document state is identical for everyone.
-
-```mermaid
-graph TD
-    A[User A types] --> B[Monaco Editor]
-    B --> C[Yjs CRDT Engine]
-    C --> D[WebSocket Broadcast]
-    D --> E[Node.js Server]
-    E --> F[Other Clients]
-    F --> G[Yjs Merge]
-    G --> H[Update Editor View]
-```
 
 ## 👥 The Team
 *   **Vinay Kumar** ([@Vinay50029](https://github.com/Vinay50029))
@@ -30,44 +19,28 @@ graph TD
 
 ## ✨ Key Features
 *   **Real-Time Collaboration:** Multiple users can edit the same file simultaneously with zero latency.
-*   **Concurrent Editing:** Powered by CRDTs (Conflict-free Replicated Data Types) to ensure code consistency.
-*   **Live WebSockets:** Instant synchronization across all connected clients.
-*   **Syntax Highlighting:** Support for multiple programming languages.
-*   **Presence Indicators:** See who else is online and what they are working on.
+*   **Conflict-Free Editing:** Powered by CRDTs (Conflict-free Replicated Data Types) to ensure code consistency.
+*   **Presence Indicators:** Live cursor tracking and online user list.
+*   **Syntax Highlighting:** Professional-grade highlighting for multiple programming languages.
+
+## 🛡️ Interview Integrity (Anti-Cheating)
+Designed for technical recruitment, CollabCode includes features to ensure authentic coding:
+*   **Code Playback:** Replay sessions to observe the developer's step-by-step thought process.
+*   **Tab Tracking:** Notifies the interviewer if the candidate switches to other windows or tabs.
+*   **Paste Detection:** Identifies and flags large, instant code injections to prevent copy-pasting.
 
 ## 🛠️ Technology Stack
-*   **Frontend:** React.js, Monaco Editor (VS Code's Engine)
+*   **Frontend:** React.js (Vite), Monaco Editor
 *   **Backend:** Node.js, Express
-*   **Real-Time:** Socket.io / WebSockets
+*   **Real-Time:** WebSockets (`y-websocket`)
 *   **State Sync:** Yjs (CRDT implementation)
-*   **Styling:** Modern Vanilla CSS / Glassmorphism
+*   **Styling:** Tailwind CSS / Modern CSS
 
 ## 🚀 Getting Started
 
-To get this project running on your local machine, follow these steps. 
+Follow these steps to set up the project on your local machine.
 
 ### 1. Clone the repository
 ```bash
-git clone https://github.com/Vinay50029/CollabCode.git
+git clone [https://github.com/Vinay50029/CollabCode.git](https://github.com/Vinay50029/CollabCode.git)
 cd CollabCode
-```
-
-### 2. Install Dependencies (For you and your friends)
-This command reads the `package.json` file and installs all the libraries (Yjs, Monaco, Socket.io, etc.) automatically.
-```bash
-npm install
-```
-
-### 3. Run the Project
-You will need two terminals open:
-*   **Terminal 1 (Backend Server):**
-    ```bash
-    npm run server
-    ```
-*   **Terminal 2 (Frontend UI):**
-    ```bash
-    npm run dev
-    ```
-
----
-*Created with ❤️ by the CollabCode Team.*

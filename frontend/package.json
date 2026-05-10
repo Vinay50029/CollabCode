@@ -1,0 +1,21 @@
+{
+  "name": "collabcode-frontend",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@monaco-editor/react": "^4.6.0",
+    "@vitejs/plugin-react": "^4.2.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "vite": "^8.0.10",
+    "y-monaco": "^0.1.4",
+    "y-websocket": "^1.5.0",
+    "yjs": "^13.6.10"
+  }
+}
