@@ -26,7 +26,7 @@ wss.on('connection', (conn, req) => {
   console.log('✨ A new user joined a coding room');
 });
 
-const PORT = 5000;
+const PORT = 5001;
 server.listen(PORT, () => {
   console.log(`🚀 CollabCode Backend running on http://localhost:${PORT}`);
   console.log(`📡 WebSocket server is ready`);
