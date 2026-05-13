@@ -1,48 +1,162 @@
-import { Link } from 'react-router';
+import { Link } from 'react-router-dom';
 import { Button } from '../components/Button';
 import { Card } from '../components/Card';
+
 import {
   Code2,
   Plus,
   Users,
   Clock,
-  Settings,
   LogOut,
   Home,
   FolderCode,
   TrendingUp,
   Activity,
+  Trash2,
+  Copy,
 } from 'lucide-react';
+
 import { useState } from 'react';
 
-export function DashboardPage() {
+import {
+  useUser,
+  useClerk,
+} from '@clerk/clerk-react';
+
+export default function DashboardPage() {
   const [activeTab, setActiveTab] = useState('rooms');
 
-  const recentRooms = [
-    { id: '1', name: 'React Dashboard', language: 'React + Tailwind', members: 3, lastActive: '2 hours ago' },
-    { id: '2', name: 'Landing Page', language: 'React + Tailwind', members: 5, lastActive: '1 day ago' },
-    { id: '3', name: 'Component Library', language: 'React + Tailwind', members: 2, lastActive: '3 days ago' },
-  ];
+  const { user } = useUser();
+
+  const { signOut } = useClerk();
+
+  const [recentRooms, setRecentRooms] = useState(() => {
+    const savedRooms = localStorage.getItem('recentRooms');
+
+    return savedRooms ? JSON.parse(savedRooms) : [];
+  });
+
+  const handleCreateRoom = async () => {
+    const projectName = window.prompt('Enter project name');
+
+    if (!projectName?.trim()) return;
+
+    const roomId = Math.random().toString(36).substring(2, 8);
+
+    const roomLink = `${window.location.origin}/editor/${roomId}`;
+
+    const newRoom = {
+      id: roomId,
+      name: projectName,
+      // language: 'React + Tailwind',
+      members: 1,
+      lastActive: 'Just now',
+      link: roomLink,
+    };
+
+    const updatedRooms = [newRoom, ...recentRooms];
+
+    setRecentRooms(updatedRooms);
+
+    localStorage.setItem(
+      'recentRooms',
+      JSON.stringify(updatedRooms)
+    );
+
+    // MONGODB SAVE HERE
+
+    window.location.href = `/editor/${roomId}`;
+  };
+
+  const handleDeleteRoom = async (roomId) => {
+    const updatedRooms = recentRooms.filter(
+      (room) => room.id !== roomId
+    );
+
+    setRecentRooms(updatedRooms);
+
+    localStorage.setItem(
+      'recentRooms',
+      JSON.stringify(updatedRooms)
+    );
+
+    // MONGODB DELETE HERE
+  };
+
+  const handleJoinRoom = () => {
+    const roomId = window.prompt('Enter Room ID');
+
+    if (!roomId?.trim()) return;
+
+    const updatedRooms = recentRooms.map((room) => {
+      if (room.id === roomId) {
+        return {
+          ...room,
+          members: room.members + 1,
+        };
+      }
+
+      return room;
+    });
+
+    setRecentRooms(updatedRooms);
+
+    localStorage.setItem(
+      'recentRooms',
+      JSON.stringify(updatedRooms)
+    );
+
+    window.location.href = `/editor/${roomId}`;
+  };
+
+  const handleCopyRoomLink = async (link) => {
+    await navigator.clipboard.writeText(link);
+
+    alert('Room link copied!');
+  };
 
   const stats = [
-    { label: 'Total Sessions', value: '24', icon: Activity, color: 'blue' },
-    { label: 'Active Rooms', value: '3', icon: FolderCode, color: 'purple' },
-    { label: 'Collaborators', value: '12', icon: Users, color: 'pink' },
-    { label: 'Hours Coded', value: '48', icon: TrendingUp, color: 'green' },
+    {
+      label: 'Total Sessions',
+      value: 'stay tuned',
+      icon: Activity,
+      color: 'blue',
+    },
+    {
+      label: 'Active Rooms',
+      value: recentRooms.length,
+      icon: FolderCode,
+      color: 'purple',
+    },
+    {
+      label: 'Collaborators',
+      value: 'stay tuned',
+      icon: Users,
+      color: 'pink',
+    },
+    {
+      label: 'Hours Coded',
+      value: 'stay tuned',
+      icon: TrendingUp,
+      color: 'green',
+    },
   ];
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-950 via-gray-900 to-blue-950">
       <div className="flex">
-        <aside className="w-64 border-r border-white/10 bg-gray-900/50 backdrop-blur-xl min-h-screen p-6">
+        <aside className="w-64 border-r border-white/10 bg-gray-900/50 backdrop-blur-xl min-h-screen p-6 flex flex-col">
           <div className="flex items-center gap-2 mb-8">
             <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-600 to-purple-600 flex items-center justify-center">
               <Code2 className="w-6 h-6 text-white" />
             </div>
-            <span className="text-xl text-white">CodeSync</span>
+
+            <span className="text-xl text-white">
+              CodeSync
+            </span>
           </div>
 
-          <nav className="space-y-2 mb-8">
+          <nav className="space-y-2">
             <button
               onClick={() => setActiveTab('rooms')}
               className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-lg transition-all ${
@@ -52,8 +166,10 @@ export function DashboardPage() {
               }`}
             >
               <Home className="w-5 h-5" />
+
               <span>My Rooms</span>
             </button>
+
             <button
               onClick={() => setActiveTab('recent')}
               className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-lg transition-all ${
@@ -63,30 +179,41 @@ export function DashboardPage() {
               }`}
             >
               <Clock className="w-5 h-5" />
+
               <span>Recent</span>
             </button>
-            <Link to="/profile">
-              <button className="w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-gray-400 hover:bg-white/5 hover:text-white transition-all">
-                <Settings className="w-5 h-5" />
-                <span>Settings</span>
-              </button>
-            </Link>
           </nav>
 
-          <div className="mt-auto pt-8">
-            <Card glass className="mb-4">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-600 to-purple-600 flex items-center justify-center text-white">
-                  JD
+          <div className="mt-auto flex flex-col gap-1 pb-2">
+            <Link to="/profile">
+              <button className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-gray-300 hover:bg-white/5 hover:text-white transition-all">
+                <img
+                  src={user?.imageUrl}
+                  alt="profile"
+                  className="w-10 h-10 rounded-full object-cover"
+                />
+
+                <div className="flex-1 text-left min-w-0">
+                  <p className="text-white text-sm truncate">
+                    {user?.fullName}
+                  </p>
+
+                  <p className="text-gray-400 text-xs truncate">
+                    {user?.primaryEmailAddress?.emailAddress}
+                  </p>
                 </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-white text-sm truncate">John Doe</p>
-                  <p className="text-gray-400 text-xs">john@example.com</p>
-                </div>
-              </div>
-            </Card>
-            <Button variant="ghost" className="w-full justify-start text-gray-400">
+              </button>
+            </Link>
+
+            <Button
+              variant="ghost"
+              className="w-full flex items-center gap-3 text-gray-300 px-4 py-3 rounded-xl hover:bg-white/5"
+              onClick={() =>
+                signOut(() => (window.location.href = '/'))
+              }
+            >
               <LogOut className="w-5 h-5" />
+
               Log out
             </Button>
           </div>
@@ -96,20 +223,33 @@ export function DashboardPage() {
           <div className="max-w-6xl mx-auto">
             <div className="flex items-center justify-between mb-8">
               <div>
-                <h1 className="text-3xl text-white mb-2">Welcome back, John</h1>
-                <p className="text-gray-400">Ready to code together?</p>
+                <h1 className="text-3xl text-white mb-2">
+                  Welcome back, {user?.firstName || 'Developer'}
+                </h1>
+
+                <p className="text-gray-400">
+                  Ready to code together?
+                </p>
               </div>
+
               <div className="flex gap-3">
-                <Button variant="outline">
+                <Button
+                  variant="outline"
+                  onClick={handleJoinRoom}
+                >
                   <Plus className="w-5 h-5" />
+
                   Join Room
                 </Button>
-                <Link to="/editor">
-                  <Button variant="primary">
-                    <Plus className="w-5 h-5" />
-                    Create Room
-                  </Button>
-                </Link>
+
+                <Button
+                  variant="primary"
+                  onClick={handleCreateRoom}
+                >
+                  <Plus className="w-5 h-5" />
+
+                  Create Room
+                </Button>
               </div>
             </div>
 
@@ -118,13 +258,21 @@ export function DashboardPage() {
                 <Card key={stat.label} glass hover>
                   <div className="flex items-start justify-between">
                     <div>
-                      <p className="text-gray-400 text-sm mb-1">{stat.label}</p>
-                      <p className="text-3xl text-white">{stat.value}</p>
+                      <p className="text-gray-400 text-sm mb-1">
+                        {stat.label}
+                      </p>
+
+                      <p className="text-3xl text-white">
+                        {stat.value}
+                      </p>
                     </div>
+
                     <div
                       className={`w-10 h-10 rounded-lg bg-${stat.color}-500/10 flex items-center justify-center`}
                     >
-                      <stat.icon className={`w-5 h-5 text-${stat.color}-400`} />
+                      <stat.icon
+                        className={`w-5 h-5 text-${stat.color}-400`}
+                      />
                     </div>
                   </div>
                 </Card>
@@ -132,27 +280,39 @@ export function DashboardPage() {
             </div>
 
             <div className="mb-6">
-              <h2 className="text-xl text-white mb-4">Recent Rooms</h2>
+              <h2 className="text-xl text-white mb-4">
+                Recent Rooms
+              </h2>
+
               <div className="grid gap-4">
                 {recentRooms.map((room) => (
-                  <Link key={room.id} to={`/editor/${room.id}`}>
+                  <Link
+                    key={room.id}
+                    to={`/editor/${room.id}`}
+                  >
                     <Card glass hover className="group">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-4 flex-1">
                           <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-600 to-purple-600 flex items-center justify-center group-hover:scale-110 transition-transform">
                             <Code2 className="w-6 h-6 text-white" />
                           </div>
+
                           <div className="flex-1">
-                            <h3 className="text-white text-lg mb-1">{room.name}</h3>
+                            <h3 className="text-white text-lg mb-1">
+                              {room.name}
+                            </h3>
+
                             <div className="flex items-center gap-4 text-sm text-gray-400">
                               <span className="flex items-center gap-1">
                                 <FolderCode className="w-4 h-4" />
                                 {room.language}
                               </span>
+
                               <span className="flex items-center gap-1">
                                 <Users className="w-4 h-4" />
                                 {room.members} members
                               </span>
+
                               <span className="flex items-center gap-1">
                                 <Clock className="w-4 h-4" />
                                 {room.lastActive}
@@ -160,35 +320,43 @@ export function DashboardPage() {
                             </div>
                           </div>
                         </div>
-                        <Button variant="ghost" className="group-hover:bg-white/10">
-                          Open
-                        </Button>
+
+                        <div className="flex items-center gap-2">
+                          <Button
+                            variant="ghost"
+                            className="group-hover:bg-white/10"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              handleCopyRoomLink(room.link);
+                            }}
+                          >
+                            <Copy className="w-4 h-4" />
+                          </Button>
+
+                          <Button
+                            variant="ghost"
+                            className="group-hover:bg-red-500/10 text-red-400"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              handleDeleteRoom(room.id);
+                            }}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+
+                          <Button
+                            variant="ghost"
+                            className="group-hover:bg-white/10"
+                          >
+                            Open
+                          </Button>
+                        </div>
                       </div>
                     </Card>
                   </Link>
                 ))}
               </div>
             </div>
-
-            <Card glass>
-              <div className="flex items-start gap-4">
-                <div className="w-12 h-12 rounded-xl bg-blue-500/10 flex items-center justify-center flex-shrink-0">
-                  <Plus className="w-6 h-6 text-blue-400" />
-                </div>
-                <div className="flex-1">
-                  <h3 className="text-white text-lg mb-2">Create your first collaborative room</h3>
-                  <p className="text-gray-400 mb-4">
-                    Start coding together with your team in real-time. Share your room code and collaborate instantly.
-                  </p>
-                  <Link to="/editor">
-                    <Button variant="primary">
-                      <Plus className="w-5 h-5" />
-                      Create New Room
-                    </Button>
-                  </Link>
-                </div>
-              </div>
-            </Card>
           </div>
         </main>
       </div>

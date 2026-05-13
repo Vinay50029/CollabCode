@@ -1,25 +1,47 @@
 import { forwardRef } from 'react';
 
-export const Input = forwardRef(
-  ({ label, error, className = '', ...props }, ref) => {
-    return (
-      <div className="w-full">
-        {label && (
-          <label className="block text-sm text-gray-300 mb-2">
-            {label}
-          </label>
-        )}
-        <input
-          ref={ref}
-          className={`w-full px-4 py-2.5 bg-white/5 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all ${className}`}
-          {...props}
-        />
-        {error && (
-          <p className="mt-1 text-sm text-red-400">{error}</p>
-        )}
-      </div>
-    );
-  }
-);
+function cn(...parts) {
+  return parts.filter(Boolean).join(' ');
+}
 
-Input.displayName = 'Input';
+export const Input = forwardRef(function Input(
+  {
+    label,
+    error,
+    className,
+    labelClassName,
+    containerClassName,
+    errorClassName,
+    id,
+    type = 'text',
+    ...props
+  },
+  ref,
+) {
+  const inputId = id || props.name;
+
+  return (
+    <div className={cn('w-full', containerClassName)}>
+      {label ? (
+        <label htmlFor={inputId} className={cn('mb-2 block text-sm font-medium', labelClassName)}>
+          {label}
+        </label>
+      ) : null}
+      <input
+        ref={ref}
+        id={inputId}
+        type={type}
+        aria-invalid={!!error}
+        className={cn(
+          'w-full rounded-lg border border-zinc-600 bg-zinc-900 px-3 py-2 text-sm text-white placeholder:text-zinc-500 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:cursor-not-allowed disabled:opacity-60',
+          error && 'border-red-500 focus:border-red-500 focus:ring-red-500',
+          className,
+        )}
+        {...props}
+      />
+      {error ? (
+        <p className={cn('mt-1 text-sm text-red-400', errorClassName)}>{error}</p>
+      ) : null}
+    </div>
+  );
+});

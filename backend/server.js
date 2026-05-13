@@ -1,33 +1,107 @@
-const express = require('express');
+require('dotenv').config();
+
 const http = require('http');
-const { setupWSConnection } = require('y-websocket/bin/utils');
-const WebSocket = require('ws');
+const express = require('express');
 const cors = require('cors');
+const { Server } = require('socket.io');
+const { YSocketIO } = require('y-socket.io/dist/server');
+const { connectDB } = require('./config/db');
+const routes = require('./routes');
+const { errorHandler } = require('./middleware/errorHandler');
 
 const app = express();
-app.use(cors()); // Allows your frontend to talk to this server
+
+const clientOrigin = process.env.CLIENT_URL || 'http://localhost:5173';
+
+function corsOrigin(origin, callback) {
+  if (!origin) {
+    return callback(null, true);
+  }
+  const allowed =
+    origin === clientOrigin || /^http:\/\/localhost:\d+$/.test(origin);
+  callback(null, allowed);
+}
+
+app.use(
+  cors({
+    origin: corsOrigin,
+    credentials: true,
+  }),
+);
+app.use(express.json({ limit: '4mb' }));
+
+app.use('/api', routes);
+
+app.use(errorHandler);
 
 const server = http.createServer(app);
 
-// Initialize a WebSocket server
-const wss = new WebSocket.Server({ noServer: true });
+const io = new Server(server, {
+  cors: {
+    origin: corsOrigin,
+    credentials: true,
+    methods: ['GET', 'POST'],
+  },
+});
 
-// This handles the "Upgrade" from standard HTTP to WebSockets
-server.on('upgrade', (request, socket, head) => {
-  wss.handleUpgrade(request, socket, head, (ws) => {
-    wss.emit('connection', ws, request);
+const ysocketio = new YSocketIO(io, { gcEnabled: true });
+ysocketio.initialize();
+
+function emitAppRoomCount(ioInstance, roomId) {
+  const room = `app:${roomId}`;
+  const size = ioInstance.sockets.adapter.rooms.get(room)?.size ?? 0;
+  ioInstance.to(room).emit('room:count', { count: size });
+}
+
+/** Default namespace: room presence + chat (separate from /yjs|room Yjs namespaces) */
+io.on('connection', (socket) => {
+  let joinedRoom = null;
+
+  socket.on('room:join', (roomId) => {
+    if (joinedRoom) {
+      socket.leave(`app:${joinedRoom}`);
+      emitAppRoomCount(io, joinedRoom);
+    }
+    joinedRoom = String(roomId || '');
+    if (!joinedRoom) return;
+    socket.join(`app:${joinedRoom}`);
+    emitAppRoomCount(io, joinedRoom);
+  });
+
+  socket.on('chat:message', (payload) => {
+    const rid = String(payload?.roomId || '');
+    if (!rid || !joinedRoom || rid !== joinedRoom) return;
+    const msg = {
+      id: `${socket.id}-${Date.now()}`,
+      user: String(payload.user || 'Guest'),
+      text: String(payload.text || ''),
+      ts: Date.now(),
+    };
+    io.to(`app:${rid}`).emit('chat:message', msg);
+  });
+
+  socket.on('disconnecting', () => {
+    if (!joinedRoom) return;
+    const rid = joinedRoom;
+    socket.once('disconnect', () => {
+      emitAppRoomCount(io, rid);
+    });
   });
 });
 
-wss.on('connection', (conn, req) => {
-  // setupWSConnection is a built-in helper from y-websocket 
-  // that handles all the Yjs document syncing automatically.
-  setupWSConnection(conn, req);
-  console.log('✨ A new user joined a coding room');
-});
+const PORT = Number(process.env.PORT) || 5001;
 
-const PORT = 5001;
-server.listen(PORT, () => {
-  console.log(`🚀 CollabCode Backend running on http://localhost:${PORT}`);
-  console.log(`📡 WebSocket server is ready`);
-});
+async function start() {
+  try {
+    await connectDB();
+    server.listen(PORT, () => {
+      console.log(`API: http://localhost:${PORT}/api`);
+      console.log(`Socket.IO + Yjs namespaces: /yjs|<roomId>`);
+    });
+  } catch (err) {
+    console.error('Failed to start server:', err.message);
+    process.exit(1);
+  }
+}
+
+start();

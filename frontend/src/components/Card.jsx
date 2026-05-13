@@ -1,12 +1,45 @@
-import * as React from 'react';
+function cn(...parts) {
+  return parts.filter(Boolean).join(' ');
+}
 
-export function Card({ children, className = '', hover = false, glass = false }) {
-  const baseStyles = 'rounded-2xl border border-gray-800 p-6';
-  const glassStyles = glass ? 'bg-white/5 backdrop-blur-xl' : 'bg-gray-900/50';
-  const hoverStyles = hover ? 'hover:border-blue-500/50 hover:shadow-lg hover:shadow-blue-500/10 transition-all duration-300 cursor-pointer' : '';
-
+export function Card({ className, children, ...props }) {
   return (
-    <div className={`${baseStyles} ${glassStyles} ${hoverStyles} ${className}`}>
+    <div
+      className={cn('rounded-xl border border-zinc-800 bg-zinc-900/90 text-white shadow-lg', className)}
+      {...props}
+    >
+      {children}
+    </div>
+  );
+}
+
+export function CardHeader({ className, children, ...props }) {
+  return (
+    <div className={cn('border-b border-zinc-800 px-6 pb-4 pt-6', className)} {...props}>
+      {children}
+    </div>
+  );
+}
+
+export function CardTitle({ className, children, ...props }) {
+  return (
+    <h2 className={cn('text-lg font-semibold leading-none', className)} {...props}>
+      {children}
+    </h2>
+  );
+}
+
+export function CardDescription({ className, children, ...props }) {
+  return (
+    <p className={cn('mt-2 text-sm text-zinc-400', className)} {...props}>
+      {children}
+    </p>
+  );
+}
+
+export function CardContent({ className, children, ...props }) {
+  return (
+    <div className={cn('p-6', className)} {...props}>
       {children}
     </div>
   );

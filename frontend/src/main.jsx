@@ -1,8 +1,14 @@
-import { createRoot } from "react-dom/client";
-import { RouterProvider } from 'react-router';
-import { router } from './routes';
+import React from 'react'
+import ReactDOM from 'react-dom/client'
+import App from './App.jsx'
 import "./styles/index.css";
 
-createRoot(document.getElementById("root")).render(
-  <RouterProvider router={router} />
-);
+import { ClerkProvider }  from '@clerk/clerk-react'
+
+ReactDOM.createRoot(document.getElementById('root')).render(
+  <React.StrictMode>
+    <ClerkProvider publishableKey={import.meta.env.VITE_CLERK_PUBLISHABLE_KEY}>
+      <App />
+    </ClerkProvider>
+  </React.StrictMode>,
+)
