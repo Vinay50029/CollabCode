@@ -204,21 +204,81 @@ export default function EditorWorkspace() {
 
   };
 
-  const handleRun = async () => {
-    if (!sources) return;
-    const content = sources.get(ACTIVE_FILENAME).toString();
-    const opt = getLanguageOption(language);
-    setRunning(true);
+  // const handleRun = async () => {
+  //   if (!sources) return;
+  //   const content = sources.get(ACTIVE_FILENAME).toString();
+  //   const opt = getLanguageOption(language);
+  //   setRunning(true);
+  //   try {
+  //     const result = await executeCode({
+  //       language: opt.piston.language,
+  //       version: opt.piston.version,
+  //       filename: pistonFileName(opt),
+  //       content,
+  //     });
+  //     setOutput(result?.run?.output || 'No output');
+  //   } catch (e) {
+  //     setOutputErr(e.message);
+  //   } finally {
+  //     setRunning(false);
+  //   }
+  // };
+    const handleRun = async () => {
     try {
+      setRunning(true);
+      setOutput('');
+      setOutputErr('');
+
+      if (!sources) {
+        setOutputErr('Sources not initialized');
+        return;
+      }
+
+      const ytext = sources.get(ACTIVE_FILENAME);
+
+      if (!ytext) {
+        setOutputErr('File not found');
+        return;
+      }
+
+      const content = ytext.toString();
+
+      if (!content.trim()) {
+        setOutputErr('Code editor is empty');
+        return;
+      }
+
+      const opt = getLanguageOption(language);
+
+      console.log('Running:', {
+        language: opt.piston.language,
+        version: opt.piston.version,
+        filename: pistonFileName(opt),
+      });
+
       const result = await executeCode({
         language: opt.piston.language,
         version: opt.piston.version,
         filename: pistonFileName(opt),
         content,
       });
-      setOutput(result?.run?.output || 'No output');
+
+      console.log('Piston Result:', result);
+
+      if (result?.run?.stderr) {
+        setOutputErr(result.run.stderr);
+      } else {
+        setOutput(result?.run?.stdout || result?.run?.output || 'No output');
+      }
+
     } catch (e) {
-      setOutputErr(e.message);
+      console.error(e);
+
+      setOutputErr(
+        e?.response?.data?.message ||
+        e?.message ||
+        'Execution failed'
+      );
     } finally {
       setRunning(false);
     }
@@ -322,7 +382,7 @@ export default function EditorWorkspace() {
               </div>
             </div>
 
-            <div className="p-4 border-t border-zinc-800">
+            {/* <div className="p-4 border-t border-zinc-800">
               <button 
                 onClick={() => signOut(() => window.location.href = '/')}
                 className="w-full flex items-center gap-2 p-2 text-zinc-500 hover:text-red-400 transition-colors text-sm"
@@ -330,7 +390,7 @@ export default function EditorWorkspace() {
                 <LogOut className="w-4 h-4" />
                 Sign Out
               </button>
-            </div>
+            </div> */}
           </div>
         </Panel>
 
