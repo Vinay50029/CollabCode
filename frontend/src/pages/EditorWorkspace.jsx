@@ -120,9 +120,12 @@ export default function EditorWorkspace() {
         }
 
         doc.transact(() => {
-          if (!sources.has(ACTIVE_FILENAME)) {
-            const t = new Y.Text(mainFile?.content || '// Start coding here...\n');
-            sources.set(ACTIVE_FILENAME, t);
+          // Use top-level deterministic type to prevent overwrite race conditions
+          const t = doc.getText(ACTIVE_FILENAME);
+          if (t.length === 0 && mainFile?.content) {
+            t.insert(0, mainFile.content);
+          }
+          if (!langs.has(ACTIVE_FILENAME)) {
             langs.set(ACTIVE_FILENAME, mainFile?.language || 'javascript');
           }
         });
@@ -175,7 +178,9 @@ export default function EditorWorkspace() {
 
 
     bindingRef.current?.destroy();
-    const ytext = sources.get(ACTIVE_FILENAME) || sources.set(ACTIVE_FILENAME, new Y.Text(''));
+    
+    // Always use the deterministic top-level Y.Text
+    const ytext = doc.getText(ACTIVE_FILENAME);
     const lang = langs.get(ACTIVE_FILENAME) || language;
 
     const uri = monacoNs.Uri.parse(`file:///${roomId}/${ACTIVE_FILENAME}`);
@@ -198,8 +203,8 @@ export default function EditorWorkspace() {
   };
 
   const handleSave = async () => {
-    if (!sources) return;
-    const content = sources.get(ACTIVE_FILENAME).toString();
+    if (!doc) return;
+    const content = doc.getText(ACTIVE_FILENAME).toString();
     const meta = dbFileRef.current;
 
     try {
