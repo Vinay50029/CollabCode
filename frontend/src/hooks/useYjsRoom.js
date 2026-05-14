@@ -29,8 +29,12 @@ export function useYjsRoom(roomId) {
     console.log(`[Yjs] Connecting to ${SOCKET_URL} for room ${roomId}`);
 
     const provider = new SocketIOProvider(SOCKET_URL, roomId, doc, {
-      disableBc: false, // Enable local tab sync
+      disableBc: false, 
       autoConnect: true,
+      // Force websocket transport for better production stability on Render
+      // and add more connection options
+      transports: ['websocket'],
+      reconnectionAttempts: 10,
     });
 
     providerRef.current = provider;

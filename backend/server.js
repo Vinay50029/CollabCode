@@ -43,10 +43,11 @@ const server = http.createServer(app);
 
 const io = new Server(server, {
   cors: {
-    origin: corsOrigin,
+    origin: true, // Permissive for production debugging
     credentials: true,
     methods: ['GET', 'POST'],
   },
+  transports: ['websocket', 'polling'],
 });
 
 const ysocketio = new YSocketIO(io, { gcEnabled: true });
