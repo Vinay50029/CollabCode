@@ -37,6 +37,12 @@ export default function DashboardPage() {
   const [recentRooms, setRecentRooms] = useState([]);
   const [loading, setLoading] = useState(true);
 
+  // Modal State
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [isJoinModalOpen, setIsJoinModalOpen] = useState(false);
+  const [roomInputValue, setRoomInputValue] = useState('');
+  const [actionError, setActionError] = useState('');
+
   useEffect(() => {
     if (user?.id) {
       loadRooms();
@@ -55,15 +61,27 @@ export default function DashboardPage() {
     }
   };
 
-  const handleCreateRoom = async () => {
-    const projectName = window.prompt('Enter project name');
-    if (!projectName?.trim()) return;
+  const openCreateModal = () => {
+    setRoomInputValue('');
+    setActionError('');
+    setIsCreateModalOpen(true);
+  };
 
+  const openJoinModal = () => {
+    setRoomInputValue('');
+    setActionError('');
+    setIsJoinModalOpen(true);
+  };
+
+  const handleCreateRoomSubmit = async (e) => {
+    e.preventDefault();
+    if (!roomInputValue?.trim()) return;
     try {
-      const { roomId } = await createRoom(user.id, projectName);
+      setActionError('');
+      const { roomId } = await createRoom(user.id, roomInputValue);
       window.location.href = `/editor/${roomId}`;
     } catch (err) {
-      alert('Failed to create room: ' + err.message);
+      setActionError('Failed to create room: ' + err.message);
     }
   };
 
@@ -77,15 +95,15 @@ export default function DashboardPage() {
     }
   };
 
-  const handleJoinRoom = async () => {
-    const roomId = window.prompt('Enter Room ID');
-    if (!roomId?.trim()) return;
-
+  const handleJoinRoomSubmit = async (e) => {
+    e.preventDefault();
+    if (!roomInputValue?.trim()) return;
     try {
-      await joinRoom(user.id, roomId);
-      window.location.href = `/editor/${roomId}`;
+      setActionError('');
+      await joinRoom(user.id, roomInputValue);
+      window.location.href = `/editor/${roomInputValue}`;
     } catch (err) {
-      alert('Failed to join room: ' + err.message);
+      setActionError('Failed to join room: ' + err.message);
     }
   };
 
@@ -225,7 +243,7 @@ export default function DashboardPage() {
               <div className="flex gap-3">
                 <Button
                   variant="outline"
-                  onClick={handleJoinRoom}
+                  onClick={openJoinModal}
                 >
                   <Plus className="w-5 h-5" />
 
@@ -234,7 +252,7 @@ export default function DashboardPage() {
 
                 <Button
                   variant="primary"
-                  onClick={handleCreateRoom}
+                  onClick={openCreateModal}
                 >
                   <Plus className="w-5 h-5" />
 
@@ -350,6 +368,64 @@ export default function DashboardPage() {
           </div>
         </main>
       </div>
+
+      {/* Create Room Modal */}
+      {isCreateModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm px-4">
+          <div className="bg-zinc-900 border border-zinc-800 rounded-2xl w-full max-w-md overflow-hidden shadow-2xl">
+            <div className="p-6">
+              <h2 className="text-xl font-bold text-white mb-2">Create New Room</h2>
+              <p className="text-zinc-400 text-sm mb-6">Give your project a name to get started.</p>
+              
+              <form onSubmit={handleCreateRoomSubmit}>
+                <input
+                  type="text"
+                  autoFocus
+                  value={roomInputValue}
+                  onChange={(e) => setRoomInputValue(e.target.value)}
+                  placeholder="e.g. My Awesome Project"
+                  className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-4 py-3 text-white outline-none focus:border-blue-500 transition-colors mb-2"
+                />
+                {actionError && <p className="text-red-400 text-sm mb-4">{actionError}</p>}
+                
+                <div className="flex gap-3 mt-6">
+                  <Button type="button" variant="ghost" className="flex-1" onClick={() => setIsCreateModalOpen(false)}>Cancel</Button>
+                  <Button type="submit" variant="primary" className="flex-1">Create Room</Button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Join Room Modal */}
+      {isJoinModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm px-4">
+          <div className="bg-zinc-900 border border-zinc-800 rounded-2xl w-full max-w-md overflow-hidden shadow-2xl">
+            <div className="p-6">
+              <h2 className="text-xl font-bold text-white mb-2">Join a Room</h2>
+              <p className="text-zinc-400 text-sm mb-6">Paste the 6-character room ID to join your team.</p>
+              
+              <form onSubmit={handleJoinRoomSubmit}>
+                <input
+                  type="text"
+                  autoFocus
+                  value={roomInputValue}
+                  onChange={(e) => setRoomInputValue(e.target.value)}
+                  placeholder="Room ID"
+                  className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-4 py-3 text-white font-mono outline-none focus:border-blue-500 transition-colors mb-2"
+                />
+                {actionError && <p className="text-red-400 text-sm mb-4">{actionError}</p>}
+                
+                <div className="flex gap-3 mt-6">
+                  <Button type="button" variant="ghost" className="flex-1" onClick={() => setIsJoinModalOpen(false)}>Cancel</Button>
+                  <Button type="submit" variant="primary" className="flex-1">Join Room</Button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

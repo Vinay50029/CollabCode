@@ -1,66 +1,58 @@
-import { useEffect, useRef, useState } from 'react';
-import { io } from 'socket.io-client';
-
-const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || 'http://localhost:5001';
+import { useEffect, useState } from 'react';
+import { db } from '../config/firebase';
+import { collection, addDoc, query, orderBy, onSnapshot } from 'firebase/firestore';
 
 /**
- * Second Socket.IO connection for room-scoped chat + presence counts.
- * Yjs uses its own namespace (/yjs|room) via y-socket.io.
+ * Serverless Chat using Firebase Firestore
  */
 export function useChatSocket(roomId, displayName) {
   const [connected, setConnected] = useState(false);
   const [peerCount, setPeerCount] = useState(1);
   const [messages, setMessages] = useState([]);
-  const socketRef = useRef(null);
 
   useEffect(() => {
-    setMessages([]);
-    const socket = io(SOCKET_URL, {
-      transports: ['websocket'],
-      autoConnect: true,
+    if (!roomId || !db) return;
+    
+    setConnected(true);
+    
+    const messagesRef = collection(db, 'rooms', roomId, 'messages');
+    const q = query(messagesRef, orderBy('ts', 'asc'));
+
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const msgs = [];
+      snapshot.forEach((doc) => {
+        msgs.push({
+          message: doc.data().text, // Map to what the UI expects
+          user: doc.data().user,
+          ts: doc.data().ts
+        });
+      });
+      setMessages(msgs);
     });
 
-    socketRef.current = socket;
-
-    const onConnect = () => {
-      setConnected(true);
-      socket.emit('room:join', roomId);
-    };
-
-    const onDisconnect = () => setConnected(false);
-
-    const onChat = (msg) => {
-      setMessages((prev) => [...prev, msg]);
-    };
-
-    const onCount = ({ count }) => {
-      if (typeof count === 'number') setPeerCount(count);
-    };
-
-    socket.on('connect', onConnect);
-    socket.on('disconnect', onDisconnect);
-    socket.on('chat:message', onChat);
-    socket.on('room:count', onCount);
-
     return () => {
-      socket.off('connect', onConnect);
-      socket.off('disconnect', onDisconnect);
-      socket.off('chat:message', onChat);
-      socket.off('room:count', onCount);
-      socket.disconnect();
-      socketRef.current = null;
+      unsubscribe();
+      setConnected(false);
     };
   }, [roomId]);
 
-  const sendMessage = (text) => {
-    const s = socketRef.current;
-    if (!s?.connected || !text.trim()) return;
-    s.emit('chat:message', {
-      roomId,
-      user: displayName,
-      text: text.trim(),
-    });
+  const sendMessage = async (text) => {
+    if (!text.trim() || !roomId || !db) return;
+    
+    try {
+      const messagesRef = collection(db, 'rooms', roomId, 'messages');
+      await addDoc(messagesRef, {
+        id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        user: displayName,
+        text: text.trim(),
+        ts: Date.now(),
+      });
+    } catch (err) {
+      console.error("Error sending message:", err);
+    }
   };
 
+  // peerCount is now better handled by Yjs awareness in the EditorWorkspace
   return { connected, peerCount, messages, sendMessage };
 }
+

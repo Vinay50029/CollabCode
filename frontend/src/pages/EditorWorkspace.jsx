@@ -53,15 +53,33 @@ export default function EditorWorkspace() {
   const { signOut } = useClerk();
   const { roomId } = useParams();
 
+  // 1. Auth Guard: Redirect to landing if not logged in
+  useEffect(() => {
+    if (isLoaded && !user) {
+      window.location.href = '/?redirect_url=' + encodeURIComponent(window.location.pathname);
+    }
+  }, [isLoaded, user]);
+
   const { doc, provider, sources, langs, synced } = useYjsRoom(roomId);
 
-  // Stable Naming
+  // Stable Naming from Clerk
   const displayName = useMemo(() => {
     if (!isLoaded) return 'Connecting...';
-    return user?.firstName || user?.fullName || user?.username || `User-${Math.random().toString(36).slice(2, 6)}`;
+    if (user) {
+      return user.fullName || user.firstName || user.username || 'User';
+    }
+    return 'Authenticating...';
   }, [user, isLoaded]);
 
-  const userColor = useMemo(() => COLORS[Math.floor(Math.random() * COLORS.length)], []);
+  // Stable Color based on name hash
+  const userColor = useMemo(() => {
+    if (displayName === 'Connecting...' || displayName === 'Authenticating...') return COLORS[0];
+    let hash = 0;
+    for (let i = 0; i < displayName.length; i++) {
+      hash = displayName.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    return COLORS[Math.abs(hash) % COLORS.length];
+  }, [displayName]);
 
   const { peerCount, messages, sendMessage } = useChatSocket(roomId, displayName);
 
@@ -118,31 +136,34 @@ export default function EditorWorkspace() {
     })();
   }, [doc, sources, langs, roomId]);
 
-
-
   // Awareness (Collaborators)
   useEffect(() => {
-    if (!provider || !isLoaded) return;
+    if (!provider || !user) return;
     provider.awareness.setLocalStateField('user', {
+      id: user.id, // Store Clerk user ID for de-duplication
       name: displayName,
       color: userColor,
     });
-  }, [provider, displayName, userColor, isLoaded]);
+  }, [provider, displayName, userColor, user]);
 
   useEffect(() => {
     if (!provider) return;
     const upd = () => {
-      const rows = [];
+      const uniqueUsers = new Map();
       provider.awareness.getStates().forEach((st, id) => {
         if (st?.user) {
-          rows.push({
-            id,
-            name: st.user.name,
-            color: st.user.color,
-          });
+          const uId = st.user.id || id;
+          if (!uniqueUsers.has(uId)) {
+            uniqueUsers.set(uId, {
+              id,
+              userId: uId,
+              name: st.user.name,
+              color: st.user.color,
+            });
+          }
         }
       });
-      setAwareUsers(rows);
+      setAwareUsers(Array.from(uniqueUsers.values()));
     };
     upd();
     provider.awareness.on('change', upd);

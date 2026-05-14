@@ -88,17 +88,47 @@ async function joinRoom(req, res, next) {
 async function deleteRoom(req, res, next) {
   try {
     const { roomId } = req.params;
-    const { userId } = req.query; // Should verify if user is owner
+    const { userId } = req.query;
 
-    await db.collection('rooms').doc(roomId).delete();
-    
-    if (userId) {
-      await db.collection('users').doc(userId).update({
-        rooms: admin.firestore.FieldValue.arrayRemove(roomId)
+    if (!userId) return res.status(400).json({ message: 'userId required' });
+
+    const roomRef = db.collection('rooms').doc(roomId);
+    const roomDoc = await roomRef.get();
+
+    if (!roomDoc.exists) {
+      return res.status(404).json({ message: 'Room not found' });
+    }
+
+    const roomData = roomDoc.data();
+
+    // If requester is owner, delete the entire room
+    if (roomData.ownerId === userId) {
+      const batch = db.batch();
+      
+      // 1. Delete all files in the room
+      const filesSnapshot = await roomRef.collection('files').get();
+      filesSnapshot.forEach(doc => batch.delete(doc.ref));
+      
+      // 2. Delete all messages
+      const msgsSnapshot = await roomRef.collection('messages').get();
+      msgsSnapshot.forEach(doc => batch.delete(doc.ref));
+      
+      // 3. Delete room document
+      batch.delete(roomRef);
+      await batch.commit();
+    } else {
+      // If requester is NOT owner, just leave the room
+      await roomRef.update({
+        collaborators: admin.firestore.FieldValue.arrayRemove(userId)
       });
     }
 
-    res.json({ ok: true });
+    // Always remove from the specific user's room list
+    await db.collection('users').doc(userId).update({
+      rooms: admin.firestore.FieldValue.arrayRemove(roomId)
+    });
+
+    res.json({ ok: true, action: roomData.ownerId === userId ? 'deleted' : 'left' });
   } catch (err) {
     next(err);
   }
