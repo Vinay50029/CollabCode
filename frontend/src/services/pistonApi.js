@@ -1,16 +1,22 @@
 import axios from 'axios';
 
-const PISTON = 'https://emkc.org/api/v2/piston/execute';
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
 
-export async function executeCode({ language, version, filename, content }) {
+/**
+ * Execute code via our backend proxy to Piston API.
+ * This is more secure and avoids CORS issues.
+ */
+export async function executeCode({ language, content }) {
   const { data } = await axios.post(
-    PISTON,
+    `${API_URL}/execute`,
     {
       language,
-      version,
-      files: [{ name: filename, content }],
+      content,
     },
-    { headers: { 'Content-Type': 'application/json' }, timeout: 30000 },
+    { 
+      headers: { 'Content-Type': 'application/json' }, 
+      timeout: 30000 
+    }
   );
   return data;
 }

@@ -1,36 +1,13 @@
-import express from 'express';
-import axios from 'axios';
-
+const express = require('express');
 const router = express.Router();
 
+// NOTE: Code execution has been moved to the frontend (in-browser) 
+// to ensure stability, speed, and zero cost in production.
 router.post('/', async (req, res) => {
-  try {
-    const { source_code, language_id } = req.body;
-
-    const response = await axios.post(
-      'https://judge0-ce.p.rapidapi.com/submissions?base64_encoded=false&wait=true',
-      {
-        source_code,
-        language_id,
-      },
-      {
-        headers: {
-          'Content-Type': 'application/json',
-          'X-RapidAPI-Key': process.env.RAPID_API_KEY,
-          'X-RapidAPI-Host': 'judge0-ce.p.rapidapi.com',
-        },
-      }
-    );
-
-    res.json(response.data);
-
-  } catch (err) {
-    console.error(err.response?.data || err.message);
-
-    res.status(500).json({
-      error: err.message,
-    });
-  }
+  res.status(200).json({ 
+    message: 'Execution is now handled on the frontend for better performance.',
+    info: 'See EditorWorkspace.jsx for the browser-side runner.'
+  });
 });
 
-export default router;
+module.exports = router;

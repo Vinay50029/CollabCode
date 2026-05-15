@@ -34,12 +34,11 @@ import {
   updateFile,
 } from '@/services/filesApi';
 
-import { executeCode } from '@/services/pistonApi';
+// import { executeCode } from '@/services/pistonApi';
 
 import {
   getLanguageOption,
   LANGUAGE_OPTIONS,
-  pistonFileName,
 } from '@/utils/languages';
 
 import { Button } from '@/components/Button';
@@ -230,81 +229,112 @@ export default function EditorWorkspace() {
 
   };
 
-  // const handleRun = async () => {
-  //   if (!sources) return;
-  //   const content = sources.get(ACTIVE_FILENAME).toString();
-  //   const opt = getLanguageOption(language);
-  //   setRunning(true);
-  //   try {
-  //     const result = await executeCode({
-  //       language: opt.piston.language,
-  //       version: opt.piston.version,
-  //       filename: pistonFileName(opt),
-  //       content,
-  //     });
-  //     setOutput(result?.run?.output || 'No output');
-  //   } catch (e) {
-  //     setOutputErr(e.message);
-  //   } finally {
-  //     setRunning(false);
-  //   }
-  // };
-    const handleRun = async () => {
+  const [pyodide, setPyodide] = useState(null);
+
+  // Initialize Pyodide
+  useEffect(() => {
+    if (language === 'python' && !pyodide) {
+      const loadPyodide = async () => {
+        try {
+          if (typeof window.loadPyodide !== 'function') {
+            console.warn('Pyodide script not yet loaded from CDN...');
+            return;
+          }
+          console.log('Loading Pyodide engine...');
+          const py = await window.loadPyodide();
+          setPyodide(py);
+          console.log('Pyodide loaded.');
+        } catch (e) {
+          console.error('Failed to load Pyodide:', e);
+        }
+      };
+      // Retry after a short delay if not ready
+      const timer = setTimeout(loadPyodide, 500);
+      return () => clearTimeout(timer);
+    }
+  }, [language, pyodide]);
+
+  const runJS = (code) => {
+    const logs = [];
+    const originalLog = console.log;
+    const originalError = console.error;
+
+    // Redirect console.log and console.error
+    console.log = (...args) => {
+      logs.push(args.map(a => typeof a === 'object' ? JSON.stringify(a, null, 2) : String(a)).join(' '));
+      originalLog(...args);
+    };
+    console.error = (...args) => {
+      logs.push('Error: ' + args.map(a => typeof a === 'object' ? JSON.stringify(a, null, 2) : String(a)).join(' '));
+      originalError(...args);
+    };
+
+    try {
+      // Use eval but wrap it to capture any immediate errors
+      // Note: In production apps, you'd use a Web Worker or a sandbox iframe
+      // for better security and to prevent infinite loops from freezing the UI.
+      const result = eval(code);
+      if (result !== undefined) logs.push(`=> ${result}`);
+      setOutput(logs.join('\n'));
+    } catch (e) {
+      setOutputErr(e.message);
+    } finally {
+      // Restore console
+      console.log = originalLog;
+      console.error = originalError;
+    }
+  };
+
+  const runPython = async (code) => {
+    if (!pyodide) {
+      setOutputErr('Python engine is still loading... please wait a few seconds.');
+      return;
+    }
+
+    try {
+      // Create a virtual stdout to capture print() calls
+      pyodide.runPython(`
+        import sys
+        import io
+        sys.stdout = io.StringIO()
+      `);
+
+      await pyodide.runPythonAsync(code);
+
+      const stdout = pyodide.runPython('sys.stdout.getvalue()');
+      setOutput(stdout || 'Python code executed successfully with no output.');
+    } catch (e) {
+      setOutputErr(e.message);
+    }
+  };
+
+  const handleRun = async () => {
     try {
       setRunning(true);
       setOutput('');
       setOutputErr('');
 
-      if (!sources) {
-        setOutputErr('Sources not initialized');
+      if (!doc) {
+        setOutputErr('Document not initialized');
         return;
       }
 
-      const ytext = sources.get(ACTIVE_FILENAME);
-
-      if (!ytext) {
-        setOutputErr('File not found');
-        return;
-      }
-
-      const content = ytext.toString();
+      const content = doc.getText(ACTIVE_FILENAME).toString();
 
       if (!content.trim()) {
         setOutputErr('Code editor is empty');
         return;
       }
 
-      const opt = getLanguageOption(language);
-
-      console.log('Running:', {
-        language: opt.piston.language,
-        version: opt.piston.version,
-        filename: pistonFileName(opt),
-      });
-
-      const result = await executeCode({
-        language: opt.piston.language,
-        version: opt.piston.version,
-        filename: pistonFileName(opt),
-        content,
-      });
-
-      console.log('Piston Result:', result);
-
-      if (result?.run?.stderr) {
-        setOutputErr(result.run.stderr);
-      } else {
-        setOutput(result?.run?.stdout || result?.run?.output || 'No output');
+      if (language === 'javascript') {
+        runJS(content);
+      } else if (language === 'python') {
+        await runPython(content);
       }
 
     } catch (e) {
-      console.error(e);
-
-      setOutputErr(
-        e?.response?.data?.message ||
-        e?.message ||
-        'Execution failed'
-      );
+      console.error('Run error:', e);
+      setOutputErr(e.message || 'Execution failed');
     } finally {
       setRunning(false);
     }

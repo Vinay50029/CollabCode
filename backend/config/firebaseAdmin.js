@@ -9,14 +9,24 @@ let db;
 try {
   if (admin.apps.length === 0) {
     let credential;
-    if (process.env.FIREBASE_SERVICE_ACCOUNT_JSON) {
-      credential = admin.credential.cert(JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_JSON));
-    } else {
+    const envJson = process.env.FIREBASE_SERVICE_ACCOUNT_JSON;
+    
+    if (envJson && envJson.trim().startsWith('{')) {
+      try {
+        credential = admin.credential.cert(JSON.parse(envJson));
+        console.log('Firebase Admin: Initializing from environment variable.');
+      } catch (err) {
+        console.warn('Firebase Admin: Malformed JSON in FIREBASE_SERVICE_ACCOUNT_JSON, falling back to file.');
+      }
+    }
+
+    if (!credential) {
       try {
         const serviceAccount = require('../serviceAccountKey.json');
         credential = admin.credential.cert(serviceAccount);
+        console.log('Firebase Admin: Initializing from serviceAccountKey.json file.');
       } catch (err) {
-        console.warn('Firebase Admin: serviceAccountKey.json not found.');
+        console.warn('Firebase Admin: serviceAccountKey.json not found or invalid.');
       }
     }
 
